@@ -61,13 +61,36 @@ if (!(Test-AppInstalled "Steam")) {
 else { Write-Host "Steam already installed" }
 
 # ==========================================================
-# DISCORD (no hang protection)
+# DISCORD (Enterprise Reliable Install)
 # ==========================================================
 if (!(Test-AppInstalled "Discord")) {
-    Write-Host "Installing Discord..."
+    Write-Host "Installing Discord (enterprise method)..."
+
     $file = "$DownloadPath\DiscordSetup.exe"
     Download-File "https://discord.com/api/download?platform=win" $file
-    Install-Exe $file "/S" 180
+
+    # Run installer without waiting (it spawns Update.exe)
+    Start-Process $file -ArgumentList "/S" -NoNewWindow
+
+    Write-Host "Monitoring Discord installation..."
+
+    $timeout = 300
+    $elapsed = 0
+
+    do {
+        Start-Sleep 3
+        $elapsed += 3
+
+        $discordInstalled = Test-Path "$env:LOCALAPPDATA\Discord\Update.exe"
+    }
+    until ($discordInstalled -or $elapsed -ge $timeout)
+
+    if ($discordInstalled) {
+        Write-Host "Discord installed successfully"
+    }
+    else {
+        Write-Host "Discord install timed out — continuing safely"
+    }
 }
 else { Write-Host "Discord already installed" }
 
