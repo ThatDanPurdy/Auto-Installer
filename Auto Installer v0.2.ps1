@@ -83,19 +83,38 @@ else {
 }
 
 
-# ---------- DISCORD ----------
+# ---------- DISCORD (PRODUCTION SAFE INSTALL) ----------
 
-# Discord installs per-user under AppData
 if (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe") {
     Write-Host "Discord already installed ✔"
 }
 else {
-    Install-FromUrl `
-        -Name "Discord" `
-        -Url "https://discord.com/api/download?platform=win" `
-        -InstallerPath "$TempPath\DiscordSetup.exe"
-}
+    Write-Host "Downloading Discord..."
+    $DiscordInstaller = "$TempPath\DiscordSetup.exe"
+    Invoke-WebRequest "https://discord.com/api/download?platform=win" -OutFile $DiscordInstaller
 
+    Write-Host "Installing Discord..."
+
+    # Start installer without -Wait to avoid hang
+    Start-Process -FilePath $DiscordInstaller -ArgumentList "/S"
+
+    # Wait until Discord files exist
+    $Timeout = 180
+    $Elapsed = 0
+
+    while (-not (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe") -and $Elapsed -lt $Timeout) {
+        Start-Sleep 3
+        $Elapsed += 3
+    }
+
+    if (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe")) {
+        Write-Host "Discord installed successfully ✔"
+    }
+    else {
+        Write-Host "Discord install timed out ❌"
+        exit 1
+    }
+}
 
 # ---------- TREESIZE FREE ----------
 
